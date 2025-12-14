@@ -1,0 +1,95 @@
+################################
+# Go build artifacts
+################################
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test binaries
+*.test
+
+# Go coverage output
+*.out
+coverage.*
+profile.*
+
+################################
+# Build directories
+################################
+bin/
+dist/
+build/
+
+################################
+# Dependency directories
+################################
+vendor/
+
+################################
+# Go workspace
+################################
+go.work
+go.work.sum
+
+################################
+# Logs
+################################
+*.log
+logs/
+
+################################
+# Environment variables
+################################
+.env
+.env.*
+!.env.example
+
+################################
+# OS generated files
+################################
+.DS_Store
+Thumbs.db
+
+################################
+# Editor / IDE files
+################################
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# JetBrains
+.idea/
+*.iml
+
+# Vim
+*.swp
+*.swo
+
+# Sublime
+*.sublime-workspace
+*.sublime-project
+
+################################
+# Temporary files
+################################
+tmp/
+temp/
+
+################################
+# Database files
+################################
+*.sqlite
+*.db
+
+################################
+# Docker
+################################
+docker-compose.override.yml
+
+################################
+# Generated files
+################################
+*.gen.go
