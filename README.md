@@ -2,13 +2,21 @@ project structure
 
 ```
 project/
-├── main.go
-├── handlers/
-├── services/
-├── repositories/
-├── models/
-├── middleware/
-├── config/
+├── cmd/
+│   └── api/
+│       └── main.go
+├── internal/
+│   ├── user/
+│   │   ├── handler.go
+│   │   ├── service.go
+│   │   ├── repository.go
+│   │   ├── model.go
+│   │   └── routes.go
+│   ├── shared/
+│   │   ├── db/
+│   │   ├── middleware/
+│   │   └── response/
+├── pkg/
 ├── go.mod
 ```
 
@@ -19,5 +27,5 @@ go mod init github.com/5hishirH/go-auth-rest-api.git
 
 run the project
 ```sh
-go run main.go
+go run cmd/api/main.go
 ```

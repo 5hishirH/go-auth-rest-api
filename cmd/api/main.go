@@ -5,7 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/5hishirH/go-auth-rest-api.git/config"
+	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/config"
+	"github.com/5hishirH/go-auth-rest-api.git/internal/user"
 )
 
 func main() {
@@ -16,15 +17,19 @@ func main() {
 
 	cfg := config.MustLoad()
 
-	router := http.NewServeMux()
+	userHandler := user.Handler()
 
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+	mainMux := http.NewServeMux()
+
+	mainMux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Server is running"))
 	})
 
+	mainMux.Handle("/api/users/", http.StripPrefix("/api/users", userHandler))
+
 	server := http.Server{
 		Addr:    cfg.Addr,
-		Handler: router,
+		Handler: mainMux,
 	}
 
 	fmt.Println("Server started")
