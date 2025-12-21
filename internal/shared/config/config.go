@@ -8,12 +8,21 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+type MinIO struct {
+	Endpoint  string `yaml:"endpoint" env-required:"true"`
+	Bucket    string `yaml:"bucket" env-required:"true"`
+	UseSSL    bool   `yaml:"use_ssl" env-required:"true"`
+	AccessKey string `env:"MINIO_ACCESS_KEY" env-required:"true"`
+	SecretKey string `env:"MINIO_SECRET_KEY" env-required:"true"`
+}
+
 type HTTPServer struct {
 	Addr string `yaml:"address" env-required:"true"`
 }
 
 type Config struct {
 	Env        string `yaml:"env" env:"ENV" env-required:"true" env-default:"production"`
+	MinIO      `yaml:"minio"`
 	HTTPServer `yaml:"http_server"`
 }
 

@@ -1,3 +1,9 @@
 env: "dev"
+db_path: "app.db"
 http_server:
   address: "localhost:8081"
+  # timeout: "5s"
+minio:
+  endpoint: "localhost:9000"
+  bucket: "user-profile-pictures"
+  use_ssl: false
