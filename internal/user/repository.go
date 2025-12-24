@@ -6,8 +6,9 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, u User) (int, error)
+	Create(ctx context.Context, u User) error
 	FindByEmail(email string) (*User, error)
+	SaveRefreshToken(userId int64, token string) (int, error)
 }
 
 type repository struct {

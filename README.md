@@ -5,27 +5,38 @@ project/
 ├── cmd/
 │   └── api/
 │       └── main.go
+├── config/
+│   └── local.yaml
 ├── internal/
-│   ├── user/
-│   │   ├── handler.go
-│   │   ├── service.go
-│   │   ├── repository.go
-│   │   ├── model.go
-│   │   └── routes.go
-│   ├── shared/
-│   │   ├── db/
-│   │   ├── middleware/
+│   ├── config/
+│   │   └── config.go
+│   ├── storage/
+│   │   ├── sqlite.go
+│   │   ├── redis.go
+│   │   └── minio.go
+│   ├── utils/
 │   │   └── response/
-├── pkg/
-├── go.mod
+│   │       └── response.go
+│   ├── auth/
+│   │   ├── model.go
+│   │   ├── repository.go
+│   │   ├── service.go
+│   │   ├── handler.go
+│   │   └── routes.go
+│   └── server/
+│       ├── server.go
+│       └── router.go
+└── go.mod
 ```
 
 init project
+
 ```sh
 go mod init github.com/5hishirH/go-auth-rest-api.git
 ```
 
 run the project
+
 ```sh
 go run cmd/api/main.go
 ```
