@@ -12,3 +12,11 @@ type User struct {
 	refreshTokenExipryInSec time.Time // `json:"-"`
 	CreatedAt               time.Time //`json:"-"`
 }
+
+type RefreshToken struct {
+	Id          int64
+	UserId      int64
+	HashedToken string
+	TokenExpiry time.Time
+	CreatedAt   time.Time
+}
