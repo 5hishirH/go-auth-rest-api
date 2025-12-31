@@ -1,24 +1,26 @@
 package auth
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 
-	checkimage "github.com/5hishirH/go-auth-rest-api.git/internal/shared/utils/check-image"
-	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/utils/response"
+	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/checkimage"
+	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/response"
 	"github.com/5hishirH/go-auth-rest-api.git/internal/user"
 	"github.com/go-playground/validator/v10"
 )
 
+type Service interface {
+	Register(context.Context, *RegisterRequest, *multipart.File, *multipart.FileHeader) (*user.User, error)
+}
+
 type Handler struct {
-	accessCookieName  string
-	accessCookiePath  string
 	refreshCookieName string
 	refreshCookiePath string
 	profileApiPrefix  string
 	service           Service
-	userRepo          user.Repository
 }
 
 func NewHandler(s *Service) *Handler {
@@ -32,39 +34,27 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseMultipartForm(10 << 20) // 10 Megabytes
 	if err != nil {
-		response.WriteJSON(w, http.StatusBadRequest, *response.GeneralError("File too big or invalid format"))
+		response.HandleBadRequest(w, "File too big or invalid format")
 		return
 	}
 
 	// create an instance of the struct
-	req := RegisterRequest{
+	input := RegisterRequest{
 		Email:    r.FormValue("email"),
 		Password: r.FormValue("password"),
 		FullName: r.FormValue("full_name"),
 	}
 
 	// validate
-	if err := validator.New().Struct(req); err != nil {
+	if err := validator.New().Struct(input); err != nil {
 		response.HandleValidationErrors(w, err)
 		return
-	}
-
-	// check duplicate email
-	if _, err := h.userRepo.FindByEmail(req.Email); err != nil {
-		if err == sql.ErrNoRows {
-			// the email is available.
-			response.HandleConflict(w, "An account with this email already exists")
-			return
-		} else {
-			//  Any other error is a real DB issue (connection died, syntax error, etc)
-			response.HandleInternalError(w, "Unknown error while checking email")
-			return
-		}
 	}
 
 	// get file and file header
 	file, header, err := r.FormFile("profile_pic")
 
+	// what type of errors does r.FormFile through?
 	if err != nil {
 		response.HandleBadRequest(w, "Profile picture is required")
 		return
@@ -74,19 +64,20 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// check file if image
 	if err = checkimage.CheckImage(file); err != nil {
-		response.HandleBadRequest(w, "profile picture file should be of type jpg or png")
+		response.HandleBadRequest(w, "Profile picture file should be of type jpg or png")
 		return
 	}
 
 	// get created user (with refreshToken but without password & passwordHash), accessToken
-	newUser, accessToken, accessCookieExpiry, refreshTokenExipry, err := h.service.Register(r.Context(), &req, &file, header)
+	newUser, err := h.service.Register(r.Context(), &input, &file, header)
 	if err != nil {
 		response.HandleInternalError(w, "Error while creating user")
 		return
 	}
 
-	// set accessToken & refreshToken cookie
-	h.SetAuthCookies(w, *accessToken, *accessCookieExpiry, newUser.RefreshToken, *refreshTokenExipry)
+	// handle session
+
+	// set refreshToken cookie
 
 	// construct profile pic url
 	protocol := "http"
@@ -94,7 +85,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		protocol = "https"
 	}
 
-	profilePicUrl := fmt.Sprintf("%s://%s/%s/%s", protocol, r.Host, h.profileApiPrefix, newUser.Id)
+	profilePicUrl := fmt.Sprintf("%s://%s/%s/%d", protocol, r.Host, h.profileApiPrefix, newUser.Id)
 
 	resData := RegisterResponse{
 		Id:       newUser.Id,
