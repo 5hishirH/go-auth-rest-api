@@ -4,45 +4,27 @@ import (
 	"net/http"
 )
 
-// SetAuthCookies sets the access and refresh tokens as secure cookies.
-// accessToken: Short-lived (e.g., 15 mins)
-// refreshToken: Long-lived (e.g., 7 days)
-func (h *Handler) SetAuthCookies(w http.ResponseWriter, accessToken string, accessCookieExpiry int, refreshToken string, refreshCoookieExpiry int) {
-	// 1. Configure the Access Token Cookie
-	accessCookie := &http.Cookie{
-		Name:     h.accessCookieName,
-		Value:    accessToken,
-		Path:     h.accessCookiePath,   // Cookie is valid for all paths
-		MaxAge:   accessCookieExpiry,   // Expires in 15 minutes (in seconds)
-		HttpOnly: true,                 // XSS protection: JS cannot read this
-		Secure:   true,                 // Send only over HTTPS
-		SameSite: http.SameSiteLaxMode, // CSRF protection
-	}
-
-	// 2. Configure the Refresh Token Cookie
+func GenerateCookieResponse(w http.ResponseWriter, cookieName string, cookiePath string, token string, expiry int, isSecure bool) {
 	refreshCookie := &http.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		Path:     "/",                  // Or set to specific refresh path like "/auth/refresh"
-		MaxAge:   refreshCoookieExpiry, // Expires in 7 days
-		HttpOnly: true,                 // XSS protection
-		Secure:   true,                 // HTTPS only
+		Name:     cookieName,
+		Value:    token,
+		Path:     cookiePath, // Or set to specific refresh path like "/auth/refresh"
+		MaxAge:   expiry,     // Expires in 7 days
+		HttpOnly: true,       // XSS protection
+		Secure:   isSecure,   // HTTPS only
 		SameSite: http.SameSiteLaxMode,
 	}
 
-	// 3. Set the cookies on the ResponseWriter
-	http.SetCookie(w, accessCookie)
 	http.SetCookie(w, refreshCookie)
 }
 
-func ClearAuthCookies(w http.ResponseWriter) {
+func GenerateClearCookieResponse(w http.ResponseWriter, cookieName string, cookiePath string) {
 	cookie := &http.Cookie{
-		Name:     "access_token",
+		Name:     cookieName,
 		Value:    "",
-		Path:     "/",
+		Path:     cookiePath,
 		MaxAge:   -1, // Instant expiration
 		HttpOnly: true,
 	}
 	http.SetCookie(w, cookie)
-	// Repeat for refresh_token...
 }

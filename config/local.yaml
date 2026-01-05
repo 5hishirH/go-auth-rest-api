@@ -1,9 +1,21 @@
 env: "dev"
 db_path: "app.db"
 http_server:
-  address: "localhost:8081"
-  # timeout: "5s"
+  address: "0.0.0.0:8082"
 minio:
   endpoint: "localhost:9000"
-  bucket: "user-profile-pictures"
+  bucket: "go-auth-rest-api"
   use_ssl: false
+redis:
+  address: "localhost:6379"
+cookies:
+  refresh:
+    name: "refresh"
+    path: "/"
+    expiry: "72h"
+    secure: false
+  session:
+    name: "session"
+    path: "/"
+    expiry: "30m"
+    secure: false

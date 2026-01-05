@@ -18,8 +18,8 @@ type Client struct {
 
 var _ filestore.FileStore = (*Client)(nil)
 
-// NewClient initializes the connection to MinIO
-func NewClient(endpoint, accessKey, secretKey, bucketName string, useSSL bool) (*Client, error) {
+// New initializes the connection to MinIO
+func New(endpoint, accessKey, secretKey, bucketName string, useSSL bool) (*Client, error) {
 	// Initialize MinIO client object
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),

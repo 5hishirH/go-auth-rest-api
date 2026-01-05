@@ -2,21 +2,23 @@ package user
 
 import "time"
 
-type UserRole string
+// type UserRole string
 
-const (
-	RoleUser  UserRole = "user"
-	RoleAdmin UserRole = "admin"
-)
+// const (
+// 	RoleUser  UserRole = "user"
+// 	RoleAdmin UserRole = "admin"
+// )
 
 type User struct {
 	Id                 int64
 	Email              string
+	Role               string
 	PasswordHash       string
-	Role               UserRole
+	RefreshTokenHash   string
+	RefreshTokenExpiry time.Time
+	IsVerified         bool
 	FullName           string
 	ProfilePicName     string
-	RefreshToken       string
-	RefreshTokenExpiry time.Time
 	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }

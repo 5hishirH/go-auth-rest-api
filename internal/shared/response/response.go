@@ -21,10 +21,10 @@ func WriteJSON(w http.ResponseWriter, statusCode int, data any) error {
 	return json.NewEncoder(w).Encode(data)
 }
 
-func GeneralError(err error) ErrorResponse {
-	return ErrorResponse{
+func GeneralError(err string) *ErrorResponse {
+	return &ErrorResponse{
 		Status: false,
-		Error:  err.Error(),
+		Error:  err,
 	}
 }
 
@@ -54,7 +54,19 @@ func HandleValidationErrors(w http.ResponseWriter, err error) {
 	}
 
 	// Fallback for other errors
-	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	HandleInternalError(w, "Internal Server Error")
+}
+
+func HandleInternalError(w http.ResponseWriter, err string) {
+	WriteJSON(w, http.StatusInternalServerError, *GeneralError(err))
+}
+
+func HandleBadRequest(w http.ResponseWriter, err string) {
+	WriteJSON(w, http.StatusBadRequest, *GeneralError(err))
+}
+
+func HandleConflict(w http.ResponseWriter, err string) {
+	WriteJSON(w, http.StatusConflict, *GeneralError(err))
 }
 
 type ResponseWrapper struct {

@@ -5,34 +5,47 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/5hishirH/go-auth-rest-api.git/internal/auth"
 	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/config"
+	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/storage/db"
 	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/storage/filestore/minio"
+	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/storage/session"
+	"github.com/5hishirH/go-auth-rest-api.git/internal/shared/types"
 	"github.com/5hishirH/go-auth-rest-api.git/internal/user"
 )
 
 func main() {
-	// config setup
-	// storage setup
-	// database setup
-	// router setup
-	// setup server
 
+	// config setup
 	cfg := config.MustLoad()
 
-	minioClient, err := minio.NewClient(
-		"localhost:9000", // Endpoint
-		"minioadmin",     // Access Key
-		"minioadmin",     // Secret Key
-		"my-test-bucket", // Bucket Name
-		false,            // SSL (false for localhost)
+	// filestore setup
+	minioClient, err := minio.New(
+		cfg.Endpoint,
+		cfg.AccessKey,
+		cfg.SecretKey,
+		cfg.Bucket,
+		cfg.UseSSL,
 	)
 
 	if err != nil {
-		log.Fatal("Failed to init storage:", err)
+		log.Fatal("failed to init storage: ", err)
 	}
 
-	userHandler := user.NewHandler(minioClient)
-	userRoutes := userHandler.RegisterRoutes()
+	// database setup
+	psql, err := db.NewPostgresqlStorage(cfg.DbSource)
+
+	if err != nil {
+		log.Fatal("failed to init db: ", err)
+	}
+
+	// session setup
+	types.RegisterTypes()
+
+	store, err := session.NewRedisStore(cfg)
+	if err != nil {
+		log.Fatal("failed to create session: ", err, "\n")
+	}
 
 	mainMux := http.NewServeMux()
 
@@ -40,18 +53,24 @@ func main() {
 		w.Write([]byte("Server is running"))
 	})
 
-	mainMux.Handle("/api/users/", http.StripPrefix("/api/users", userRoutes))
+	// router setup
+	userRepo := user.NewRepository(psql)
+	authService := auth.NewService(minioClient, userRepo, "profile-pics")
+	authHandler := auth.NewHandler(authService, store, cfg.Cookies.Refresh.Name, cfg.Cookies.Refresh.Path, cfg.Refresh.Expiry, cfg.Cookies.Refresh.Secure, "user")
+	authRoutes := authHandler.RegisterRoutes()
+	mainMux.Handle("/api/auth/", http.StripPrefix("/api/auth", authRoutes))
 
 	server := http.Server{
-		Addr:    cfg.Addr,
+		Addr:    cfg.HTTPServer.Addr,
 		Handler: mainMux,
 	}
 
+	// setup server
 	fmt.Println("Server started")
 	err = server.ListenAndServe()
 
 	if err != nil {
-		log.Fatal("Failed to start server")
+		log.Fatal("failed to start server")
 	}
 
 }
