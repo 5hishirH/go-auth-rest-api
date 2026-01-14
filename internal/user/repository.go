@@ -3,6 +3,8 @@ package user
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"time"
 )
 
 type repository struct {
@@ -80,4 +82,26 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*User, erro
 	}
 
 	return &user, nil
+}
+
+func (r *repository) SaveRefreshToken(ctx context.Context, email string, hash string, expiry time.Time) error {
+	query := `UPDATE users 
+              SET refresh_token_hash = $1, refresh_token_expiry = $2 
+              WHERE email = $3`
+
+	result, err := r.db.ExecContext(ctx, query, hash, expiry, email)
+	if err != nil {
+		return fmt.Errorf("failed to execute update query: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found with email: %s", email)
+	}
+
+	return nil
 }

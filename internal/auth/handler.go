@@ -2,7 +2,10 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -17,6 +20,7 @@ import (
 
 type Service interface {
 	Register(context.Context, *types.UserInput, *time.Duration, *multipart.File, *multipart.FileHeader) (*user.User, *string, error)
+	Login(context.Context, *LoginRequest, time.Duration) (*user.User, string, error)
 }
 
 type Handler struct {
@@ -42,7 +46,6 @@ func NewHandler(s Service, store *session.Store, refreshCookieName, refreshCooki
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
-	// parse multipart-form
 	session, err := h.store.Get(r)
 
 	if err != nil {
@@ -50,6 +53,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// parse multipart-form
 	err = r.ParseMultipartForm(10 << 20) // 10 Megabytes
 	if err != nil {
 		response.HandleBadRequest(w, "File too big or invalid format")
@@ -152,7 +156,87 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	response.CreatedOne(w, "user", resData)
 }
 
-func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	session, err := h.store.Get(r)
+
+	if err != nil {
+		response.HandleInternalError(w, "Error while initiating session")
+		return
+	}
+
+	var loginCredentials LoginRequest
+
+	err = json.NewDecoder(r.Body).Decode(&loginCredentials)
+
+	if errors.Is(err, io.EOF) {
+		response.HandleBadRequest(w, "empty body")
+		return
+	}
+
+	if err != nil {
+		response.HandleBadRequest(w, err.Error())
+		return
+	}
+
+	if err := validator.New().Struct(loginCredentials); err != nil {
+		response.HandleValidationErrors(w, err)
+		return
+	}
+
+	parsedRefreshCookieExpiry, err := time.ParseDuration(h.refreshCookieExpiry)
+
+	if err != nil {
+		fmt.Printf("refresh token expiry: %s", h.refreshCookieExpiry)
+		fmt.Printf("%s", err.Error())
+		response.HandleInternalError(w, "Error in parsing refresh cookie duration")
+		return
+	}
+
+	user, refreshToken, err := h.service.Login(r.Context(), &loginCredentials, parsedRefreshCookieExpiry)
+
+	if err != nil {
+		if err.Error() == "invalid credentials" {
+			response.HandleUnauthorized(w, err.Error())
+			return
+		}
+
+		response.HandleInternalError(w, err.Error())
+		return
+	}
+
+	// handle session
+	userSession := types.UserSession{
+		UserID: user.Id,
+		Role:   user.Role,
+	}
+
+	session.Values["user"] = userSession
+	session.Save(r, w)
+
+	refreshCookieExpiryInSec := int(parsedRefreshCookieExpiry.Seconds())
+
+	GenerateCookieResponse(w, h.refreshCookieName, h.refreshCookiePath, refreshToken, refreshCookieExpiryInSec, h.isRefreshCookieSecure)
+
+	// construct profile pic url
+	protocol := "http"
+	if r.TLS != nil {
+		protocol = "https"
+	}
+
+	profilePicUrl := fmt.Sprintf("%s://%s/%s/%s", protocol, r.Host, h.profileApiPrefix, "profile-pic")
+
+	resData := RegisterResponse{
+		Id:         user.Id,
+		Email:      user.Email,
+		Role:       user.Role,
+		IsVerified: user.IsVerified,
+		FullName:   user.FullName,
+		// Constructed: http://localhost:8080/api/v1/profile/123
+		ProfilePic: profilePicUrl,
+	}
+
+	response.CreatedOne(w, "user", resData)
+}
 
 func (h *Handler) CheckAuthStatus(w http.ResponseWriter, r *http.Request) {}
 

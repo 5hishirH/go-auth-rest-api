@@ -22,6 +22,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, u user.User) error
 	FindByEmail(ctx context.Context, email string) (*user.User, error)
+	SaveRefreshToken(ctx context.Context, email string, hash string, expiry time.Time) error
 }
 
 type FileStore interface {
@@ -87,6 +88,11 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
+func CheckPassword(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
 func (s *service) Register(rCtx context.Context, u *types.UserInput, parsedRefreshCookieExpiry *time.Duration, file *multipart.File, fileHeader *multipart.FileHeader) (*user.User, *string, error) {
 	// check email conflict
 	userExists, err := s.repo.FindByEmail(rCtx, u.Email)
@@ -147,4 +153,39 @@ func (s *service) Register(rCtx context.Context, u *types.UserInput, parsedRefre
 	}
 
 	return createdUser, &token, nil
+}
+
+func (s *service) Login(rCtx context.Context, u *LoginRequest, parsedRefreshCookieExpiry time.Duration) (*user.User, string, error) {
+	user, err := s.repo.FindByEmail(rCtx, u.Email)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, "", errors.New("no account")
+		}
+
+		return nil, "", err
+	}
+
+	if isValid := CheckPassword(u.Password, user.PasswordHash); isValid != true {
+		return nil, "", errors.New("invalid password")
+	}
+
+	// refresh token
+	token, err := generateRefreshToken()
+
+	if err != nil {
+		return nil, "", err
+	}
+	hashedToken := HashToken(token)
+
+	now := time.Now()
+	refreshTokenExpiry := now.Add(parsedRefreshCookieExpiry)
+
+	err = s.repo.SaveRefreshToken(rCtx, u.Email, hashedToken, refreshTokenExpiry)
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	return user, token, nil
 }

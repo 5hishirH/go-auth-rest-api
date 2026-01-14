@@ -69,6 +69,10 @@ func HandleConflict(w http.ResponseWriter, err string) {
 	WriteJSON(w, http.StatusConflict, *GeneralError(err))
 }
 
+func HandleUnauthorized(w http.ResponseWriter, err string) {
+	WriteJSON(w, http.StatusConflict, *GeneralError(err))
+}
+
 type ResponseWrapper struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`

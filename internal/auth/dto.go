@@ -2,7 +2,7 @@ package auth
 
 type RegisterRequest struct {
 	Email    string `json:"email" validate:"email,required"`
-	Password string `json:"password" validate:"required,min=0"`
+	Password string `json:"password" validate:"required,min=6"`
 	FullName string `json:"fullName" validate:"required"`
 }
 
@@ -13,4 +13,9 @@ type RegisterResponse struct {
 	IsVerified bool   `json:"isVerified"`
 	FullName   string `json:"fullName"`
 	ProfilePic string `json:"profilePic"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" validate:"email,required"`
+	Password string `json:"password" validate:"required,min=6"`
 }
