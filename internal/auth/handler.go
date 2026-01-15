@@ -90,6 +90,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// no benefit in separte function as error to be handled in each usage separately
 	parsedRefreshCookieExpiry, err := time.ParseDuration(h.refreshCookieExpiry)
 
 	if err != nil {
@@ -98,8 +99,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		response.HandleInternalError(w, "Error in parsing refresh cookie duration")
 		return
 	}
-
-	refreshCookieExpiryInSec := int(parsedRefreshCookieExpiry.Seconds())
 
 	userInput := types.UserInput{
 		Email:      req.Email,
@@ -132,6 +131,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	session.Values["user"] = userSession
 	session.Save(r, w)
 
+	refreshCookieExpiryInSec := int(parsedRefreshCookieExpiry.Seconds())
 	// set refreshToken cookie
 	GenerateCookieResponse(w, h.refreshCookieName, h.refreshCookiePath, *refreshToken, refreshCookieExpiryInSec, h.isRefreshCookieSecure)
 
@@ -250,4 +250,19 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {}
 
 func (h *Handler) ForgetPassword(w http.ResponseWriter, r *http.Request) {}
 
-func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	// revoke session
+	session, err := h.store.Get(r)
+
+	if err != nil {
+		response.HandleInternalError(w, "Error while initiating session")
+		return
+	}
+
+	session.Options.MaxAge = -1
+	session.Save(r, w)
+
+	// revoke refresh token
+	GenerateClearCookieResponse(w, h.refreshCookieName, h.refreshCookiePath)
+	response.NoContent(w)
+}

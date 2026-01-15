@@ -57,20 +57,20 @@ func HandleValidationErrors(w http.ResponseWriter, err error) {
 	HandleInternalError(w, "Internal Server Error")
 }
 
-func HandleInternalError(w http.ResponseWriter, err string) {
-	WriteJSON(w, http.StatusInternalServerError, *GeneralError(err))
+func HandleInternalError(w http.ResponseWriter, err string) error {
+	return WriteJSON(w, http.StatusInternalServerError, *GeneralError(err))
 }
 
-func HandleBadRequest(w http.ResponseWriter, err string) {
-	WriteJSON(w, http.StatusBadRequest, *GeneralError(err))
+func HandleBadRequest(w http.ResponseWriter, err string) error {
+	return WriteJSON(w, http.StatusBadRequest, *GeneralError(err))
 }
 
-func HandleConflict(w http.ResponseWriter, err string) {
-	WriteJSON(w, http.StatusConflict, *GeneralError(err))
+func HandleConflict(w http.ResponseWriter, err string) error {
+	return WriteJSON(w, http.StatusConflict, *GeneralError(err))
 }
 
-func HandleUnauthorized(w http.ResponseWriter, err string) {
-	WriteJSON(w, http.StatusConflict, *GeneralError(err))
+func HandleUnauthorized(w http.ResponseWriter, err string) error {
+	return WriteJSON(w, http.StatusConflict, *GeneralError(err))
 }
 
 type ResponseWrapper struct {
@@ -85,4 +85,8 @@ func CreatedOne(w http.ResponseWriter, fieldName string, data any) error {
 		Message: fmt.Sprintf("The %s is created successfully", fieldName),
 		Data:    data,
 	})
+}
+
+func NoContent(w http.ResponseWriter) error {
+	return WriteJSON(w, http.StatusNoContent, nil)
 }
