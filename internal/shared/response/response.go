@@ -70,7 +70,7 @@ func HandleConflict(w http.ResponseWriter, err string) error {
 }
 
 func HandleUnauthorized(w http.ResponseWriter, err string) error {
-	return WriteJSON(w, http.StatusConflict, *GeneralError(err))
+	return WriteJSON(w, http.StatusUnauthorized, *GeneralError(err))
 }
 
 type ResponseWrapper struct {
@@ -83,6 +83,14 @@ func CreatedOne(w http.ResponseWriter, fieldName string, data any) error {
 	return WriteJSON(w, http.StatusCreated, ResponseWrapper{
 		Success: true,
 		Message: fmt.Sprintf("The %s is created successfully", fieldName),
+		Data:    data,
+	})
+}
+
+func Retrived(w http.ResponseWriter, fieldName string, data any) error {
+	return WriteJSON(w, http.StatusOK, ResponseWrapper{
+		Success: true,
+		Message: fmt.Sprintf("The %s is retrived", fieldName),
 		Data:    data,
 	})
 }

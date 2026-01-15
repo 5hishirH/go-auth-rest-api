@@ -53,12 +53,19 @@ func main() {
 		w.Write([]byte("Server is running"))
 	})
 
+	profilePicApiPrefix := "api/user"
+
 	// router setup
 	userRepo := user.NewRepository(psql)
 	authService := auth.NewService(minioClient, userRepo, "profile-pics")
-	authHandler := auth.NewHandler(authService, store, cfg.Cookies.Refresh.Name, cfg.Cookies.Refresh.Path, cfg.Refresh.Expiry, cfg.Cookies.Refresh.Secure, "user")
+	authHandler := auth.NewHandler(authService, store, cfg.Cookies.Refresh.Name, cfg.Cookies.Refresh.Path, cfg.Refresh.Expiry, cfg.Cookies.Refresh.Secure, profilePicApiPrefix)
 	authRoutes := authHandler.RegisterRoutes()
 	mainMux.Handle("/api/auth/", http.StripPrefix("/api/auth", authRoutes))
+
+	authMiddleware := auth.NewMiddleware(store)
+	userHandler := user.NewHandler(authMiddleware.AuthMiddleware, userRepo, profilePicApiPrefix)
+	userRoutes := userHandler.RegisterRoutes()
+	mainMux.Handle("/api/user/", http.StripPrefix("/api/user", userRoutes))
 
 	server := http.Server{
 		Addr:    cfg.HTTPServer.Addr,

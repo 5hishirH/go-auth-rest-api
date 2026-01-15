@@ -105,3 +105,34 @@ func (r *repository) SaveRefreshToken(ctx context.Context, email string, hash st
 
 	return nil
 }
+
+func (r *repository) FindById(ctx context.Context, id int64) (*User, error) {
+	var user User
+
+	query := `SELECT id, email, role, password_hash, refresh_token_hash, refresh_token_expiry, is_verified, full_name, profile_pic_name, created_at, updated_at
+	
+	FROM users
+	WHERE id = $1`
+
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	err := row.Scan(
+		&user.Id,
+		&user.Email,
+		&user.Role,
+		&user.PasswordHash,
+		&user.RefreshTokenHash,
+		&user.RefreshTokenExpiry,
+		&user.IsVerified,
+		&user.FullName,
+		&user.ProfilePicName,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
