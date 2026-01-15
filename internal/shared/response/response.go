@@ -10,8 +10,8 @@ import (
 )
 
 type ErrorResponse struct {
-	Status bool
-	Error  string
+	Success bool   `json:"success"`
+	Error   string `json:"error"`
 }
 
 func WriteJSON(w http.ResponseWriter, statusCode int, data any) error {
@@ -23,8 +23,8 @@ func WriteJSON(w http.ResponseWriter, statusCode int, data any) error {
 
 func GeneralError(err string) *ErrorResponse {
 	return &ErrorResponse{
-		Status: false,
-		Error:  err,
+		Success: false,
+		Error:   err,
 	}
 }
 
@@ -46,8 +46,8 @@ func HandleValidationErrors(w http.ResponseWriter, err error) {
 		}
 
 		WriteJSON(w, http.StatusBadRequest, ErrorResponse{
-			Status: false,
-			Error:  strings.Join(errMsgs, ", "),
+			Success: false,
+			Error:   strings.Join(errMsgs, ", "),
 		})
 
 		return
